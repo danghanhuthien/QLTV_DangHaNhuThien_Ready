@@ -1,0 +1,91 @@
+﻿@page "/"
+@using QLTV_DangHaNhuThien.Components.Data
+@using System.Security.Claims
+@using QLTV_DangHaNhuThien.Components.Layout
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject BookDbcontext bookdbcontext
+@inject NavigationManager navigationManager
+@using QLTV_DangHaNhuThien.Components.Models
+
+<EditForm Model="@user" OnValidSubmit="Authenticate" FormName="Login_form">
+    <div class="form">
+        <div class="form-title"><span>Sign in to your</span></div>
+        <div class="title-2"><span>SPACE</span></div>
+        <div class="input-container">
+            <InputText @bind-Value="user.Username" type="text" class="input-mail" placeholder="Enter username" />
+            <ValidationMessage For="() => user.Username" /> @* Hoạt động bình thường trong EditForm *@
+            <span></span>
+        </div>
+
+        <section class="bg-stars">
+            <span class="star"></span>
+            <span class="star"></span>
+            <span class="star"></span>
+            <span class="star"></span>
+        </section>
+
+        <div class="input-container">
+            <InputText @bind-Value="user.Password" type="password" class="input-pwd" placeholder="Enter password" />
+            <ValidationMessage For="() => user.Password" /> @* Hoạt động bình thường trong EditForm *@
+        </div>
+
+        <button type="submit" class="submit">
+            <span class="sign-text">Sign in</span>
+        </button>
+
+        <p class="signup-link">
+            No account?
+            <a href="/Register" class="up">Sign up!</a>
+        </p>
+        <div>
+            <span>
+                @error
+            </span>
+        </div>
+    </div>
+</EditForm>
+
+
+
+
+@code {
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+
+    [SupplyParameterFromForm]
+    public User user { get; set; } = new();
+
+    private string? error;
+
+    //Authentication
+    private async Task Authenticate()
+    {
+        var user_account = bookdbcontext.User.Where(x => x.Username == user.Username).FirstOrDefault();
+        if (user_account is null || user_account.Password != user.Password)
+        {
+            error = "Invalid ID or Password";
+            return;
+        }
+
+        //System.Security.Claims
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user_account.Role)
+        };
+        var indentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(indentity);
+        await HttpContext.SignInAsync(principal);
+        navigationManager.NavigateTo("/Dashboard");
+
+
+
+    }
+
+
+
+
+}
